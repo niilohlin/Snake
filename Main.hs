@@ -2,7 +2,6 @@
 module Main where
 
 import Helm
-import           Helm
 import qualified Helm.Cmd as Cmd
 import           Helm.Color
 import           Helm.Engine.SDL (SDLEngine)
@@ -10,7 +9,6 @@ import qualified Helm.Engine.SDL as SDL
 import           Helm.Graphics2D as Graphics
 import qualified Helm.Graphics2D.Text as Text
 import qualified Helm.Keyboard as Keyboard
-import qualified Helm.Mouse as Mouse
 import qualified Helm.Sub as Sub
 import qualified Helm.Time as Time
 import Helm.Time (Time)
@@ -20,7 +18,8 @@ import Data.List.NonEmpty as NonEmpty
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified System.Random as Rand
 import Debug.Trace
-import Control.Lens ((+=), (&))
+import qualified FRP.Elerea.Simple.Pure as Pure
+import qualified Control.Monad as Monad
 
 windowDims :: V2 Int
 windowDims = V2 800 600
@@ -34,7 +33,7 @@ data Action = Move Double | ChangeDirection Direction | Die | NewApple Rand.StdG
 
 
 initial :: (Model, Cmd SDLEngine Action)
-initial = (Model { snake = V2 0 0 :| [], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.none)--Cmd.execute Rand.newStdGen NewApple)
+initial = (Model { snake = V2 3 0 :| [V2 2 0, V2 1 0, V2 0 0], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.none)--Cmd.execute Rand.newStdGen NewApple)
 
 update :: Model -> Action -> (Model, Cmd SDLEngine Action)
 update model (ChangeDirection e) = (changeDirection model e, Cmd.none)
@@ -74,7 +73,7 @@ subscriptions = Sub.batch [
         Keyboard.LeftKey -> ChangeDirection West
         _ -> Wait
     ),
-    Time.fps 1 Move]
+    Time.fps 5 Move]
 
 squareSize :: Double
 squareSize = 30
