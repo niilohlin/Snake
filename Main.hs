@@ -46,10 +46,18 @@ update model (ChangeDirection e) = (changeDirection model e, Cmd.none)
 update model Wait = (model, Cmd.none)
 update model (Move _) = (move model, Cmd.none)
     where
-        move m@Model{direction = East, snake = s} = m { snake = ((NonEmpty.head s) + V2 1 0) :| NonEmpty.init s}
-        move m@Model{direction = West, snake = s} = m { snake = ((NonEmpty.head s) - V2 1 0) :| NonEmpty.init s}
-        move m@Model{direction = South, snake = s} = m { snake = ((NonEmpty.head s) + V2 0 1) :| NonEmpty.init s}
-        move m@Model{direction = North, snake = s} = m { snake = ((NonEmpty.head s) - V2 0 1) :| NonEmpty.init s}
+        newHead = newHead' model
+            where
+                newHead' m@Model{direction = East, snake = s} = ((NonEmpty.head s) + V2 1 0)
+                newHead' m@Model{direction = West, snake = s} = ((NonEmpty.head s) - V2 1 0)
+                newHead' m@Model{direction = South, snake = s} = ((NonEmpty.head s) + V2 0 1)
+                newHead' m@Model{direction = North, snake = s} = ((NonEmpty.head s) - V2 0 1)
+
+        newTail = if newHead == apple model
+            then NonEmpty.toList $ snake model
+            else NonEmpty.init  $ snake model
+
+        move m = m { snake = newHead :| newTail }
 
 update model (NewApple stdGen) = undefined
     --where
@@ -73,7 +81,7 @@ subscriptions = Sub.batch [
         Keyboard.LeftKey -> ChangeDirection West
         _ -> Wait
     ),
-    Time.fps 5 Move]
+    Time.fps 10 Move]
 
 squareSize :: Double
 squareSize = 30
