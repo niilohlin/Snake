@@ -29,7 +29,7 @@ type Snake = NonEmpty (V2 Int)
 
 data Model = Model { snake :: Snake, direction :: Direction , apple :: V2 Int, speed :: Double }
 
-data Action = Move Double | ChangeDirection Direction | Die | NewApple Rand.StdGen | Eat | Wait
+data Action = Move Double | ChangeDirection Direction | NewApple Rand.StdGen | NoAction
 
 initial :: (Model, Cmd SDLEngine Action)
 initial = (Model { snake = V2 3 0 :| [V2 2 0, V2 1 0, V2 0 0], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.execute Rand.newStdGen NewApple)
@@ -44,21 +44,26 @@ update model (ChangeDirection newDirection) = (changeDirection , Cmd.none)
             (South, North) -> model
             (_, _) -> model { direction = newDirection }
 
-update model Wait = (model, Cmd.none)
-update model (Move _) = if newHead == apple newModel
+update model (Move _) = if eaten
                              then (newModel, (Cmd.execute Rand.newStdGen NewApple))
                              else (newModel, Cmd.none)
     where
+        eaten = newHead == apple model
+        dead = any (==snakeHead) snakeTail
+
+        snakeTail = NonEmpty.tail $ snake model
         snakeHead = NonEmpty.head $ snake model
+
         newHead = snakeHead + case direction model of
             East -> V2 1 0
             West -> -V2 1 0
             South -> V2 0 1
             North -> -V2 0 1
 
-        newTail = if newHead == apple model
-            then NonEmpty.toList $ snake model
-            else NonEmpty.init  $ snake model
+        newTail = case (eaten, dead) of
+            (_, True) -> NonEmpty.take 3 $ snake model
+            (True, _) -> NonEmpty.toList $ snake model
+            (_, _) -> NonEmpty.init  $ snake model
         newModel = model { snake = newHead :| newTail }
 
 update model (NewApple stdGen) = (generateNewApple, Cmd.none)
@@ -68,8 +73,7 @@ update model (NewApple stdGen) = (generateNewApple, Cmd.none)
                       let (y, _) = Rand.random newStdGen in
                       let vector = V2 (x `mod` 10) (y `mod` 10) in
                       vector
-
-update _ _ = undefined
+update model NoAction = (model, Cmd.none)
     --where
         --move model =
 
@@ -82,7 +86,7 @@ subscriptions = Sub.batch [
         Keyboard.DownKey -> ChangeDirection South
         Keyboard.RightKey -> ChangeDirection East
         Keyboard.LeftKey -> ChangeDirection West
-        _ -> Wait
+        _ -> NoAction
     ),
     Time.fps 10 Move]
 
