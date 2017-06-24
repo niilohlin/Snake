@@ -32,7 +32,7 @@ data Model = Model { snake :: Snake, direction :: Direction , apple :: V2 Int, s
 data Action = Move Double | ChangeDirection Direction | Die | NewApple Rand.StdGen | Eat | Wait
 
 initial :: (Model, Cmd SDLEngine Action)
-initial = (Model { snake = V2 3 0 :| [V2 2 0, V2 1 0, V2 0 0], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.none)--Cmd.execute Rand.newStdGen NewApple)
+initial = (Model { snake = V2 3 0 :| [V2 2 0, V2 1 0, V2 0 0], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.execute Rand.newStdGen NewApple)
 
 update :: Model -> Action -> (Model, Cmd SDLEngine Action)
 update model (ChangeDirection newDirection) = (changeDirection , Cmd.none)
