@@ -31,40 +31,43 @@ data Model = Model { snake :: Snake, direction :: Direction , apple :: V2 Int, s
 
 data Action = Move Double | ChangeDirection Direction | Die | NewApple Rand.StdGen | Eat | Wait
 
-
 initial :: (Model, Cmd SDLEngine Action)
 initial = (Model { snake = V2 3 0 :| [V2 2 0, V2 1 0, V2 0 0], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.none)--Cmd.execute Rand.newStdGen NewApple)
 
 update :: Model -> Action -> (Model, Cmd SDLEngine Action)
-update model (ChangeDirection e) = (changeDirection model e, Cmd.none)
+update model (ChangeDirection newDirection) = (changeDirection , Cmd.none)
     where
-        changeDirection model@(Model{ direction = East }) West = model
-        changeDirection model@(Model{ direction = West }) East = model
-        changeDirection model@(Model{ direction = North }) South = model
-        changeDirection model@(Model{ direction = South }) North = model
-        changeDirection model direction = model { direction = direction }
+        changeDirection = case (direction model, newDirection) of
+            (East,  West) -> model
+            (West,  East) -> model
+            (North, South) -> model
+            (South, North) -> model
+            (_, _) -> model { direction = newDirection }
+
 update model Wait = (model, Cmd.none)
-update model (Move _) = (move model, Cmd.none)
+update model (Move _) = if newHead == apple newModel
+                             then (newModel, (Cmd.execute Rand.newStdGen NewApple))
+                             else (newModel, Cmd.none)
     where
-        newHead = newHead' model
-            where
-                newHead' m@Model{direction = East, snake = s} = ((NonEmpty.head s) + V2 1 0)
-                newHead' m@Model{direction = West, snake = s} = ((NonEmpty.head s) - V2 1 0)
-                newHead' m@Model{direction = South, snake = s} = ((NonEmpty.head s) + V2 0 1)
-                newHead' m@Model{direction = North, snake = s} = ((NonEmpty.head s) - V2 0 1)
+        snakeHead = NonEmpty.head $ snake model
+        newHead = snakeHead + case direction model of
+            East -> V2 1 0
+            West -> -V2 1 0
+            South -> V2 0 1
+            North -> -V2 0 1
 
         newTail = if newHead == apple model
             then NonEmpty.toList $ snake model
             else NonEmpty.init  $ snake model
+        newModel = model { snake = newHead :| newTail }
 
-        move m = m { snake = newHead :| newTail }
-
-update model (NewApple stdGen) = undefined
-    --where
-        --generateNewApple model stgGen =
-        --randomPoint stgGen = let (x, newStdGen) = random stgGen in
-                             --let (y, newStdGen') = random newStdGen in
-                             --let vector = V2 (x `mod` 10) (y `mod` 10) in
+update model (NewApple stdGen) = (generateNewApple, Cmd.none)
+    where
+        generateNewApple = model {apple = randomPoint}
+        randomPoint = let (x, newStdGen) = Rand.random stdGen in
+                      let (y, _) = Rand.random newStdGen in
+                      let vector = V2 (x `mod` 10) (y `mod` 10) in
+                      vector
 
 update _ _ = undefined
     --where
