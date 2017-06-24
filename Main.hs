@@ -24,6 +24,13 @@ import qualified Control.Monad as Monad
 windowDims :: V2 Int
 windowDims = V2 800 600
 
+gameDims :: V2 Int
+gameDims = fmap floor $ fmap fromIntegral windowDims / pure squareSize
+
+modGameDim :: V2 Int -> V2 Int
+modGameDim vector = fmap (flip mod) gameDims <*> vector
+
+
 data Direction = North | South | West | East
 type Snake = NonEmpty (V2 Int)
 
@@ -54,7 +61,7 @@ update model (Move _) = if eaten
         snakeTail = NonEmpty.tail $ snake model
         snakeHead = NonEmpty.head $ snake model
 
-        newHead = snakeHead + case direction model of
+        newHead = modGameDim $ snakeHead + case direction model of
             East -> V2 1 0
             West -> -V2 1 0
             South -> V2 0 1
@@ -71,13 +78,9 @@ update model (NewApple stdGen) = (generateNewApple, Cmd.none)
         generateNewApple = model {apple = randomPoint}
         randomPoint = let (x, newStdGen) = Rand.random stdGen in
                       let (y, _) = Rand.random newStdGen in
-                      let vector = V2 (x `mod` 10) (y `mod` 10) in
-                      vector
+                      let vector = V2 x y in
+                      modGameDim vector
 update model NoAction = (model, Cmd.none)
-    --where
-        --move model =
-
---update model Die = (model { speed = 0.5, snake = }
 
 subscriptions :: Sub SDLEngine Action
 subscriptions = Sub.batch [
@@ -94,9 +97,8 @@ squareSize :: Double
 squareSize = 30
 
 drawSquare :: V2 Int -> Form e
-drawSquare position = move (position' * squareSize' + windowDims' / pure 2.0) $ filled (rgb 0.5 0.5 0.5) $ square squareSize
+drawSquare position = move (position' * squareSize') $ filled (rgb 0.5 0.5 0.5) $ square squareSize
     where
-        windowDims' = fmap fromIntegral windowDims
         position' = fmap fromIntegral position
         squareSize' = pure squareSize
 
