@@ -42,14 +42,14 @@ initial :: (Model, Cmd SDLEngine Action)
 initial = (Model { snake = V2 3 0 :| [V2 2 0, V2 1 0, V2 0 0], apple = V2 0 0, direction = East, speed = 0.5 }, Cmd.execute Rand.newStdGen NewApple)
 
 update :: Model -> Action -> (Model, Cmd SDLEngine Action)
-update model (ChangeDirection newDirection) = (changeDirection , Cmd.none)
+update model (ChangeDirection newDirection) = changeDirection
     where
         changeDirection = case (direction model, newDirection) of
-            (East,  West) -> model
-            (West,  East) -> model
-            (North, South) -> model
-            (South, North) -> model
-            (_, _) -> model { direction = newDirection }
+            (East,  West) -> (model, Cmd.none)
+            (West,  East) -> (model, Cmd.none)
+            (North, South) -> (model, Cmd.none)
+            (South, North) -> (model, Cmd.none)
+            (_, _) -> update (model { direction = newDirection }) (Move 0)
 
 update model (Move _) = if eaten
                              then (newModel, (Cmd.execute Rand.newStdGen NewApple))
@@ -73,13 +73,17 @@ update model (Move _) = if eaten
             (_, _) -> NonEmpty.init  $ snake model
         newModel = model { snake = newHead :| newTail }
 
-update model (NewApple stdGen) = (generateNewApple, Cmd.none)
+update model (NewApple s) = (generateNewApple , Cmd.none)
     where
-        generateNewApple = model {apple = randomPoint}
-        randomPoint = let (x, newStdGen) = Rand.random stdGen in
-                      let (y, _) = Rand.random newStdGen in
+        generateNewApple = model {apple = randomPoint s}
+        randomPoint stdGen = let (x, newStdGen) = Rand.random stdGen in
+                      let (y, newStdGen') = Rand.random newStdGen in
                       let vector = V2 x y in
-                      modGameDim vector
+                      let newApplePos = modGameDim vector in
+                      if any (==newApplePos) (snake model)
+                          then randomPoint newStdGen'
+                          else newApplePos
+
 update model NoAction = (model, Cmd.none)
 
 subscriptions :: Sub SDLEngine Action
